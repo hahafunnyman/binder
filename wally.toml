@@ -3,8 +3,7 @@ name = "hahafunnyman/binder"
 version = "0.1.0"
 registry = "https://github.com/UpliftGames/wally-index"
 realm = "shared"
-license = "MIT"
-authors = ["hahafunnyman", "quenty"]
+description = "A fork of Quenty's Binder library with additional functionality. https://github.com/hahafunnyman/binder"
 exclude = ["**"]
 include = ["src", "src/**/*.luau", "wally.toml", "wally.lock", "default.project.json"]
 
