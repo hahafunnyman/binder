@@ -39,11 +39,3 @@ local binder = Binder.new(binderConfig, constructor)
 binder:Start()
 ```
 *(This `KillBrick` binder only observes its instances as long as they're in `game.Workspace`)*
-
-# Functionality
-
-Binders work the same as normal, however the following method(s) have been removed: 
-* `:ObserveInstance()`
-
-
-

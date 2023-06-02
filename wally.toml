@@ -4,8 +4,9 @@ version = "0.1.0"
 registry = "https://github.com/UpliftGames/wally-index"
 realm = "shared"
 description = "A fork of Quenty's Binder library with additional functionality. https://github.com/hahafunnyman/binder"
+license = "MIT"
 exclude = ["**"]
-include = ["src", "src/**/*.luau", "wally.toml", "wally.lock", "default.project.json"]
+include = ["src", "src/**", "wally.toml", "wally.lock", "default.project.json"]
 
 [dependencies]
 Signal = "sleitnick/signal@^1"

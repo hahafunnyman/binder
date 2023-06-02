@@ -1,7 +1,7 @@
 local RunService = game:GetService("RunService")
 local CollectionService = game:GetService("CollectionService")
 
-local Packages = script.Parent
+local Packages = script.Parent.Packages
 local Promise = require(Packages.Promise)
 local Signal = require(Packages.Signal)
 local Observers = require(Packages.Observers)
@@ -83,6 +83,15 @@ local function add(self, instance: Instance)
 	self._allClassSet[class] = true
 	self._instToClass[instance] = class
 
+	-- Fire events
+	local listeners = self._listeners[instance]
+
+	if listeners then
+		for callback in listeners do
+			task.spawn(callback, class)
+		end
+	end
+
 	if self._classAddedSignal then
 		self._classAddedSignal:Fire(class, instance)
 	end
@@ -100,6 +109,15 @@ local function remove(self, instance: Instance)
 	-- Fire off events
 	if self._classRemovingSignal then
 		self._classRemovingSignal:Fire(class, instance)
+	end
+
+	-- Fire listeners here
+	local listeners = self._listeners[instance]
+	
+	if listeners then
+		for callback in listeners do
+			task.spawn(callback, nil)
+		end
 	end
 
 	-- Clean up state
@@ -211,6 +229,7 @@ function Binder.new(config: BinderConfig, constructor: BinderConstructor, ...: a
 	self._allClassSet = {} -- [class] = true
 	self._pendingInstSet = {} -- [inst] = true
 
+	self._listeners = {} -- [inst] = callback
 	self._args = table.pack(...)
 
 	self._classAddedSignal = self._maid:Add(Signal.new(), "Destroy")
@@ -273,6 +292,31 @@ end
 ]=]
 function Binder:GetConstructor(): BinderConstructor
 	return self._constructor
+end
+
+--[=[
+	@within Binder
+	@param instance Instance
+	@param callback function 
+	@return function -- Cleanup function
+	
+	Fired when added, and then after removal, but before destroy!
+]=]
+function Binder:ObserveInstance(instance: Instance, callback: (...any) -> () -> ())
+	self._listeners[instance] = if self._listeners[instance] then self._listeners[instance] else {}
+	self._listeners[instance][callback] = true
+
+	return function()
+		if not self._listeners[instance] then
+			return
+		end
+
+		self._listeners[instance][callback] = nil
+
+		if not next(self._listeners[instance]) then
+			self._listeners[instance] = nil
+		end
+	end
 end
 
 --[=[
@@ -511,7 +555,7 @@ end
 	@within Binder
 	@return nil
 
-	Cleans up all bound classes, and disconnects all events.
+	Cleans up all bound classes, disconnects all events and destroys the binder itself.
 ]=]
 function Binder:Destroy()
 	for inst: Instance in self._instToClass do
