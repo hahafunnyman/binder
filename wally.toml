@@ -1,6 +1,6 @@
 [package]
 name = "hahafunnyman/binder"
-version = "0.1.0"
+version = "0.1.1"
 registry = "https://github.com/UpliftGames/wally-index"
 realm = "shared"
 description = "A fork of Quenty's Binder library with additional functionality. https://github.com/hahafunnyman/binder"
