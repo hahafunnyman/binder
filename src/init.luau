@@ -113,7 +113,7 @@ local function remove(self, instance: Instance)
 
 	-- Fire listeners here
 	local listeners = self._listeners[instance]
-	
+
 	if listeners then
 		for callback in listeners do
 			task.spawn(callback, nil)
