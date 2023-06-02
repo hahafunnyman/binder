@@ -1,10 +1,6 @@
 {
     "name": "Binder",
     "tree": {
-        "$path": "Packages",
-
-        "Binder": {
-            "$path": "src"
-        }
+        "$path": "src"
     }
 }

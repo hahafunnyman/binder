@@ -1,0 +1,15 @@
+{
+    "name": "binder-test",
+    "tree": {
+        "$className": "DataModel",
+        "ReplicatedStorage": {
+            "Packages": {
+                "$path": "Packages/"
+            },
+
+            "Binder": {
+                "$path": "default.project.json"
+            }
+        }
+    }
+}
