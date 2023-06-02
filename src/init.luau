@@ -532,7 +532,7 @@ function Binder:Promise(instance: Instance, timeout: number?)
 
 		return
 	end
-	
+
 	if timeout and type(timeout) ~= "number" then
 		error("[Binder.Promise] - Argument 'timeout' is not an number")
 
