@@ -4,11 +4,11 @@
         "$className": "DataModel",
         "ReplicatedStorage": {
             "Packages": {
-                "$path": "Packages/"
-            },
+                "$path": "Packages",
 
-            "Binder": {
-                "$path": "default.project.json"
+                "Binder": {
+                    "$path": "default.project.json"
+                }
             }
         }
     }
