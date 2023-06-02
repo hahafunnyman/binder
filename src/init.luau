@@ -36,7 +36,7 @@ local function add(self, instance: Instance)
 
 	if self._instToClass[instance] then
 		-- https://devforum.roblox.com/t/double-firing-of-collectionservice-getinstanceaddedsignal-when-applying-tag/244235
-		
+
 		return
 	end
 
