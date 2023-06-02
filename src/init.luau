@@ -1,7 +1,7 @@
 local RunService = game:GetService("RunService")
 local CollectionService = game:GetService("CollectionService")
 
-local Packages = script.Parent.Packages
+local Packages = script.Parent
 local Promise = require(Packages.Promise)
 local Signal = require(Packages.Signal)
 local Observers = require(Packages.Observers)
@@ -527,8 +527,17 @@ end
 	Returns a promise which will resolve when the instance is bound.
 ]=]
 function Binder:Promise(instance: Instance, timeout: number?)
-	assert(typeof(instance) == "Instance", "Argument 'instance' is not an Instance")
-	assert(timeout and type(timeout) == "number", "Argument 'timeout' is not an number")
+	if typeof(instance) ~= "Instance" then
+		error("[Binder.Promise] - Argument 'instance' is not an Instance")
+
+		return
+	end
+	
+	if timeout and type(timeout) ~= "number" then
+		error("[Binder.Promise] - Argument 'timeout' is not an number")
+
+		return
+	end
 
 	local binderInstance = self:Get(instance)
 
