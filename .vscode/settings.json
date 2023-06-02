@@ -1,0 +1,12 @@
+{
+    "[lua]": {
+        "editor.defaultFormatter": "JohnnyMorganz.stylua",
+        "editor.formatOnSave": true,
+    },
+    
+    "luau-lsp.sourcemap.enabled": true,
+    "luau-lsp.hover.enabled": true,
+    "luau-lsp.completion.imports.requireStyle": "auto",
+    "luau-lsp.completion.imports.suggestRequires": true,
+    "luau-lsp.completion.imports.suggestServices": true,
+}

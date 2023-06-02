@@ -1,0 +1,16 @@
+[package]
+name = "hahafunnyman/binder"
+version = "0.1.0"
+registry = "https://github.com/UpliftGames/wally-index"
+realm = "shared"
+license = "MIT"
+authors = ["hahafunnyman", "quenty"]
+exclude = ["**"]
+include = ["src", "src/**/*.luau", "wally.toml", "wally.lock", "default.project.json"]
+
+[dependencies]
+Signal = "sleitnick/signal@^1"
+Observers = "sleitnick/observers@0.3.2"
+t = "osyrisrblx/t@^3"
+Promise = "evaera/promise@^4"
+Janitor = "howmanysmall/janitor@^1"

@@ -1,0 +1,4 @@
+/Packages
+*.sh
+*.lock
+/sourcemap.json
