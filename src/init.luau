@@ -1,13 +1,12 @@
 local RunService = game:GetService("RunService")
 local CollectionService = game:GetService("CollectionService")
+local HttpService = game:GetService("HttpService")
 
 local Packages = script.Parent
 local Promise = require(Packages.Promise)
 local Signal = require(Packages.Signal)
-local Observers = require(Packages.Observers)
 local Janitor = require(Packages.Janitor)
 local t = require(Packages.t)
-
 local TaskUtil = require(script.TaskUtil)
 
 local validateBinder = t.strictInterface({
@@ -228,8 +227,9 @@ function Binder.new(config: BinderConfig, constructor: BinderConstructor, ...: a
 	self._instToClass = {} -- [inst] = class
 	self._allClassSet = {} -- [class] = true
 	self._pendingInstSet = {} -- [inst] = true
-
 	self._listeners = {} -- [inst] = callback
+	self._ancestryConnectionIds = {} -- [inst] = string
+
 	self._args = table.pack(...)
 
 	self._classAddedSignal = self._maid:Add(Signal.new(), "Destroy")
@@ -241,7 +241,7 @@ end
 
 --[=[
 	@within Binder
-	@param value any
+	@param value Binder<T>?
 	@return boolean
 
 	Retrieves whether or not the given value is a binder.
@@ -264,13 +264,51 @@ function Binder:Start()
 
 	self._loaded = true
 
-	self._observer = self._maid:Add(Observers.observeTag(self._tagName, function(instance: Instance)
-		add(self, instance)
+	local function isGoodAncestor(instance: Instance): boolean
+		for _, ancestor: Instance in self._ancestors do
+			if instance:IsDescendantOf(ancestor) then
+				return true
+			end
+		end
 
-		return function()
+		return false
+	end
+
+	local function onAncestryChanged(instance: Instance)
+		if not isGoodAncestor(instance) then
 			remove(self, instance)
 		end
-	end, self._ancestors))
+
+		if not self._instToClass[instance] then
+			add(self, instance)
+		end
+	end
+
+	local function onInstanceAdded(instance: Instance)
+		self._ancestryConnectionIds[instance] = HttpService:GenerateGUID(false)
+
+		onAncestryChanged(instance)
+		self._maid:Add(
+			instance.AncestryChanged:Connect(onAncestryChanged),
+			"Disconnect",
+			self._ancestryConnectionIds[instance]
+		)
+	end
+
+	local function onInstanceRemoved(instance: Instance)
+		local ancestryConnectionId: string = self._ancestryConnectionIds[instance]
+		self._ancestryConnectionIds[instance] = nil
+
+		remove(self, instance)
+		self._maid:Remove(ancestryConnectionId)
+	end
+
+	self._maid:Add(CollectionService:GetInstanceAddedSignal(self._tagName):Connect(onInstanceAdded), "Disconnect")
+	self._maid:Add(CollectionService:GetInstanceRemovedSignal(self._tagName):Connect(onInstanceRemoved), "Disconnect")
+
+	for _, instance: Instance in CollectionService:GetTagged(self._tagName) do
+		task.defer(onInstanceAdded, instance)
+	end
 end
 
 --[=[

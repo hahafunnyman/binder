@@ -1,6 +1,6 @@
 [package]
 name = "hahafunnyman/binder"
-version = "0.1.1"
+version = "0.1.2"
 registry = "https://github.com/UpliftGames/wally-index"
 realm = "shared"
 description = "A fork of Quenty's Binder library with additional functionality. https://github.com/hahafunnyman/binder"
@@ -10,7 +10,6 @@ include = ["src", "src/**", "wally.toml", "wally.lock", "default.project.json"]
 
 [dependencies]
 Signal = "sleitnick/signal@^1"
-Observers = "sleitnick/observers@0.3.2"
 t = "osyrisrblx/t@^3"
 Promise = "evaera/promise@^4"
 Janitor = "howmanysmall/janitor@^1"
