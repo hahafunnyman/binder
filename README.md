@@ -36,4 +36,4 @@ end
 local binder = Binder.new(binderConfig, constructor)
 binder:Start()
 ```
-*(This `KillBrick` binder only observes its instances as long as they're in `game.Workspace`)*
+*(This `Lava` binder only observes its instances as long as they're in `game.Workspace`)*
