@@ -10,7 +10,6 @@ include = ["src", "src/**", "wally.toml", "wally.lock", "default.project.json"]
 
 [dependencies]
 Signal = "sleitnick/signal@^1"
-Observers = "sleitnick/observers@0.3.2"
 t = "osyrisrblx/t@^3"
 Promise = "evaera/promise@^4"
 Janitor = "howmanysmall/janitor@^1"
