@@ -6,32 +6,16 @@ local Packages = script.Parent
 local Promise = require(Packages.Promise)
 local Signal = require(Packages.Signal)
 local Janitor = require(Packages.Janitor)
-local t = require(Packages.t)
 local TaskUtil = require(script.TaskUtil)
 
-local validateBinder = t.strictInterface({
-	Start = t.callback,
-	GetTag = t.callback,
-	GetConstructor = t.callback,
-	GetClassAddedSignal = t.callback,
-	GetClassRemovingSignal = t.callback,
-	GetClassRemovedSignal = t.callback,
-	GetAll = t.callback,
-	GetAllSet = t.callback,
-	Bind = t.callback,
-	BindClient = t.callback,
-	Unbind = t.callback,
-	UnbindClient = t.callback,
-	Get = t.callback,
-	Promise = t.callback,
-	Destroy = t.callback,
-})
+type Cleanup = () -> ()
+type Callback = (...any) -> Cleanup
 
 local DEFAULT_TIMEOUT = 60
 local DEFAULT_ANCESTORS = { workspace }
 
-local function add(self, instance: Instance)
-	assert(typeof(instance) == "Instance", "Argument 'inst' is not an Instance")
+local function add(self, instance)
+	assert(typeof(instance) == "Instance", "Argument 'instance' is not an Instance")
 
 	if self._instToClass[instance] then
 		-- https://devforum.roblox.com/t/double-firing-of-collectionservice-getinstanceaddedsignal-when-applying-tag/244235
@@ -96,7 +80,9 @@ local function add(self, instance: Instance)
 	end
 end
 
-local function remove(self, instance: Instance)
+local function remove(self, instance)
+	assert(typeof(instance) == "Instance", "Argument 'instance' is not an Instance")
+
 	self._pendingInstSet[instance] = nil
 
 	local class = self._instToClass[instance]
@@ -169,25 +155,16 @@ Binder.ClassName = "Binder"
 --[=[
 	@within Binder
 	@interface BinderConfig
-	@field TagName string
-	@field Ancestors {Instance}?
+	@field TagName string  -- Name of the tag to bind to. This uses CollectionService's tag system
+	@field Ancestors {Instance}? 
 ]=]
-type BinderConfig = {
-	TagName: string,
-	Ancestors: { Instance }?,
-}
-
-type ClassConstructor = { new: (Instance, ...any) -> any }
-type SimpleConstructor = (Instance, ...any) -> () -> ()
-type CreateConstructor = { Create: (self: any, Instance, ...any) -> any }
 
 --[=[
 	@within Binder
-	@type BinderContructor
-	
+	@type BinderContructor (Instance, ...: any) -> T | { new: (Instance, ...: any) } | { Create(self, Instance, ...: any) }
+
 	Constructor for a binder
 ]=]
-type BinderConstructor = SimpleConstructor | ClassConstructor | CreateConstructor
 
 --[=[
 	@within Binder
@@ -216,7 +193,7 @@ type BinderConstructor = SimpleConstructor | ClassConstructor | CreateConstructo
 	binder:Start()
 	```
 ]=]
-function Binder.new(config: BinderConfig, constructor: BinderConstructor, ...: any)
+function Binder.new(config, constructor, ...)
 	local self = setmetatable({}, Binder)
 
 	self._maid = Janitor.new()
@@ -246,8 +223,24 @@ end
 
 	Retrieves whether or not the given value is a binder.
 ]=]
-function Binder.isBinder(value): boolean
-	return validateBinder(value)
+function Binder.isBinder(value)
+	return type(value) == "table"
+		and type(value.Start) == "function"
+		and type(value.Get) == "function"
+		and type(value.GetTag) == "function"
+		and type(value.GetConstructor) == "function"
+		and type(value.GetClassAddedSignal) == "function"
+		and type(value.GetClassRemovingSignal) == "function"
+		and type(value.GetClassRemovedSignal) == "function"
+		and type(value.GetAll) == "function"
+		and type(value.GetAllSet) == "function"
+		and type(value.Bind) == "function"
+		and type(value.Unbind) == "function"
+		and type(value.BindClient) == "function"
+		and type(value.UnbindClient) == "function"
+		and type(value.ObserveInstance) == "function"
+		and type(value.Promise) == "function"
+		and type(value.Destroy) == "function"
 end
 
 --[=[
@@ -264,8 +257,8 @@ function Binder:Start()
 
 	self._loaded = true
 
-	local function isGoodAncestor(instance: Instance): boolean
-		for _, ancestor: Instance in self._ancestors do
+	local function isGoodAncestor(instance)
+		for _, ancestor in self._ancestors do
 			if instance:IsDescendantOf(ancestor) then
 				return true
 			end
@@ -274,7 +267,7 @@ function Binder:Start()
 		return false
 	end
 
-	local function onAncestryChanged(instance: Instance)
+	local function onAncestryChanged(instance)
 		if not isGoodAncestor(instance) then
 			remove(self, instance)
 		end
@@ -284,7 +277,7 @@ function Binder:Start()
 		end
 	end
 
-	local function onInstanceAdded(instance: Instance)
+	local function onInstanceAdded(instance)
 		self._ancestryConnectionIds[instance] = HttpService:GenerateGUID(false)
 
 		onAncestryChanged(instance)
@@ -296,7 +289,7 @@ function Binder:Start()
 	end
 
 	local function onInstanceRemoved(instance: Instance)
-		local ancestryConnectionId: string = self._ancestryConnectionIds[instance]
+		local ancestryConnectionId = self._ancestryConnectionIds[instance]
 		self._ancestryConnectionIds[instance] = nil
 
 		remove(self, instance)
@@ -306,7 +299,7 @@ function Binder:Start()
 	self._maid:Add(CollectionService:GetInstanceAddedSignal(self._tagName):Connect(onInstanceAdded), "Disconnect")
 	self._maid:Add(CollectionService:GetInstanceRemovedSignal(self._tagName):Connect(onInstanceRemoved), "Disconnect")
 
-	for _, instance: Instance in CollectionService:GetTagged(self._tagName) do
+	for _, instance in CollectionService:GetTagged(self._tagName) do
 		task.defer(onInstanceAdded, instance)
 	end
 end
@@ -317,7 +310,7 @@ end
 
 	Returns the tag name that the binder has.
 ]=]
-function Binder:GetTag(): string
+function Binder:GetTag()
 	return self._tagName
 end
 
@@ -328,7 +321,7 @@ end
 	Returns whatever was set for the construtor. Used for meta-analysis of
 	the binder, such as extracting if parameters are allowed.
 ]=]
-function Binder:GetConstructor(): BinderConstructor
+function Binder:GetConstructor()
 	return self._constructor
 end
 
@@ -340,7 +333,7 @@ end
 	
 	Fired when added, and then after removal, but before destroy!
 ]=]
-function Binder:ObserveInstance(instance: Instance, callback: (...any) -> () -> ())
+function Binder:ObserveInstance(instance: Instance, callback: Callback)
 	self._listeners[instance] = if self._listeners[instance] then self._listeners[instance] else {}
 	self._listeners[instance][callback] = true
 
@@ -378,7 +371,7 @@ end
 	birdBinder:Start()
 	```
 ]=]
-function Binder:GetClassAddedSignal(): Signal.Signal<any, Instance>
+function Binder:GetClassAddedSignal()
 	return self._classAddedSignal
 end
 
@@ -388,7 +381,7 @@ end
 
 	Returns a new signal that will fire whenever a class is removing from the binder.
 ]=]
-function Binder:GetClassRemovingSignal(): Signal.Signal<any, Instance>
+function Binder:GetClassRemovingSignal()
 	return self._classRemovingSignal
 end
 
@@ -398,7 +391,7 @@ end
 
 	Returns a new signal that will fire whenever a class is removed from the binder.
 ]=]
-function Binder:GetClassRemovedSignal(): Signal.Signal<any, Instance>
+function Binder:GetClassRemovedSignal()
 	return self._classRemovedSignal
 end
 
@@ -479,7 +472,7 @@ end
 	Do not assume that a bound object will be retrieved
 	:::
 ]=]
-function Binder:Bind(instance: Instance)
+function Binder:Bind(instance)
 	if RunService:IsClient() then
 		warn(
 			("[Binder.Bind] - Bindings '%s' done on the client! Will be disrupted upon server replication! %s"):format(
@@ -499,7 +492,7 @@ end
 
 	Unbinds the instance by removing the tag.
 ]=]
-function Binder:Unbind(instance: Instance)
+function Binder:Unbind(instance)
 	assert(typeof(instance) == "Instance", "Bad inst'")
 
 	if RunService:IsClient() then
@@ -523,7 +516,7 @@ end
 	acknowledges that we're intentionally binding on a safe client object (one without
 	replication). If another tag is changed on this instance, this tag will be lost/changed.
 ]=]
-function Binder:BindClient(instance: Instance)
+function Binder:BindClient(instance)
 	if not RunService:IsClient() then
 		warn(("[Binder.BindClient] - Bindings '%s' done on the server! Will be replicated!"):format(self._tagName))
 	end
@@ -538,7 +531,7 @@ end
 
 	See `:Unbind()`, acknowledges risk of doing this on the client. 
 ]=]
-function Binder:UnbindClient(instance: Instance)
+function Binder:UnbindClient(instance)
 	assert(typeof(instance) == "Instance", "Bad inst")
 	CollectionService:RemoveTag(instance, self._tagName)
 end
@@ -550,7 +543,7 @@ end
 	
 	Returns a instance of the class that is bound to the instance given.
 ]=]
-function Binder:Get(instance: Instance)
+function Binder:Get(instance)
 	assert(typeof(instance) == "Instance", "Argument 'inst' is not an Instance")
 
 	return self._instToClass[instance]
@@ -564,7 +557,7 @@ end
 
 	Returns a promise which will resolve when the instance is bound.
 ]=]
-function Binder:Promise(instance: Instance, timeout: number?)
+function Binder:Promise(instance, timeout)
 	if typeof(instance) ~= "Instance" then
 		error("[Binder.Promise] - Argument 'instance' is not an Instance")
 
@@ -593,7 +586,7 @@ function Binder:Promise(instance: Instance, timeout: number?)
 		return doesMatch
 	end)
 		:andThen(function()
-			return Promise.resolve(binderInstance)
+			return binderInstance
 		end)
 		:timeout(if timeout then timeout else DEFAULT_TIMEOUT)
 end
@@ -605,9 +598,9 @@ end
 	Cleans up all bound classes, disconnects all events and destroys the binder itself.
 ]=]
 function Binder:Destroy()
-	for inst: Instance in self._instToClass do
-		remove(self, inst)
-		assert(self._instToClass[inst] == nil, "Failed to remove")
+	for instance: Instance in self._instToClass do
+		remove(self, instance)
+		assert(self._instToClass[instance] == nil, "Failed to remove")
 	end
 
 	self._maid:Destroy()
