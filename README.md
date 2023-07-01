@@ -3,14 +3,14 @@ A modified version of the [Binder library](https://quenty.github.io/NevermoreEng
 A key feature of this version of Binder is *ancestry filtering*. ROBLOX instances binded under a `Binder` are observed within a specific ancestor(s). Take a look at the following code:
 ```lua
 local binderConfig = {
-     TagName = "KillBrick",
+     TagName = "Lava",
      Ancestors = { workspace },
 }
 
-local function constructor(instance: BasePart)
+local function constructor(lava: BasePart)
      local touchedConnection: RBXScriptConnection
 
-     touchedConnection = instance.Touched:Connect(function(hit: BasePart)
+     touchedConnection = lava.Touched:Connect(function(hit: BasePart)
          local character = hit:FindFirstAncestorOfClass("Model")
 
          if not character then
@@ -19,7 +19,7 @@ local function constructor(instance: BasePart)
 
          local humanoid = character:FindFirstChildOfClass("Humanoid")
 
-         if not humanoid then
+         if not humanoid or humanoid.Health <= 0 then
               return
          end
 
@@ -30,12 +30,10 @@ local function constructor(instance: BasePart)
        if touchedConnection.Connected then
             touchedConnection:Disconnect()
        end
-
-       instance:Destroy()
      end
 end
 
 local binder = Binder.new(binderConfig, constructor)
 binder:Start()
 ```
-*(This `KillBrick` binder only observes its instances as long as they're in `game.Workspace`)*
+*(This `Lava` binder only observes its instances as long as they're in `game.Workspace`)*
