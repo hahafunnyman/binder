@@ -1,0 +1,23 @@
+{
+    "name": "example",
+    "tree": {
+        "$className": "DataModel",
+        "$ignoreUnknownInstances": true,
+
+        "ReplicatedStorage": {
+            "Packages": {
+                "$path": "Packages",
+
+                "Binder": {
+                    "$path": "../default.project.json"
+                }
+            }
+        },
+
+        "ServerScriptService": {
+            "Server": {
+                "$path": "src/server"
+            }
+        }
+    }
+}
